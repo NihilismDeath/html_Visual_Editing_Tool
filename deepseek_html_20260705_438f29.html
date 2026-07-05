@@ -1176,17 +1176,21 @@
             const slide = getCurrentSlide();
             if (!slide) return;
             try {
+                updateStatus('正在解析 HTML...');
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlString, 'text/html');
                 const body = doc.body;
                 let yOffset = 30,
                     xOffset = 30;
                 let count = 0;
+                const newElements = [];
                 for (let child of body.children) {
                     const tag = child.tagName.toLowerCase();
-                    if (['script', 'style', 'noscript'].includes(tag)) continue;
+                    if (['script', 'style', 'noscript', 'iframe'].includes(tag)) continue;
                     const text = child.textContent.trim();
-                    if (!text) continue;
+                    if (!text || text.length < 2) continue;
+                    // 跳过导航、结构类元素
+                    if (['nav', 'header', 'footer', 'aside'].includes(tag)) continue;
                     const style = child.style;
                     const fontSize = style.fontSize || '16px';
                     const color = style.color || '#202124';
@@ -1194,9 +1198,9 @@
                     const textAlign = style.textAlign || 'left';
                     const fontWeight = style.fontWeight || 'normal';
                     const fontStyle = style.fontStyle || 'normal';
-                    const width = Math.min(600, Math.max(120, 100 + text.length * 7));
-                    const height = Math.max(28, parseInt(fontSize) * 1.6);
-                    const newEl = {
+                    const width = Math.min(700, Math.max(120, 100 + text.length * 5));
+                    const height = Math.max(28, parseInt(fontSize) * 1.8);
+                    newElements.push({
                         id: genId(),
                         type: 'text',
                         x: xOffset,
@@ -1207,13 +1211,13 @@
                         style: { fontSize: fontSize, fontWeight: fontWeight, fontStyle: fontStyle,
                             textDecoration: 'none', color: color, backgroundColor: bgColor,
                             fontFamily: 'Arial', textAlign: textAlign }
-                    };
-                    slide.elements.push(newEl);
+                    });
                     count++;
                     yOffset += height + 12;
-                    if (yOffset > 500) { yOffset = 30;
-                        xOffset += 350; }
+                    if (yOffset > 500) { yOffset = 30; xOffset += 350; }
                 }
+                // 批量添加后再统一渲染，避免每添加一个就重绘一次
+                slide.elements.push(...newElements);
                 renderAll();
                 updateStatus(`✅ 导入成功，共添加 ${count} 个文本元素`);
             } catch (e) {
