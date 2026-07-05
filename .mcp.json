@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic-ai/chrome-devtools-mcp@latest",
+        "--port",
+        "9222"
+      ]
+    }
+  }
+}

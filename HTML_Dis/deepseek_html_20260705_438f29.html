@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PPT 可视化编辑器 · 导入/导出HTML</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, 'Helvetica Neue', sans-serif;
+            background: #e8ecf1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .toolbar {
+            background: #ffffff;
+            padding: 8px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 10px;
+            border-bottom: 1px solid #d0d7de;
+            flex-shrink: 0;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+            z-index: 10;
+        }
+        .toolbar .brand {
+            font-weight: 700;
+            font-size: 18px;
+            color: #1a73e8;
+            margin-right: 16px;
+            letter-spacing: 0.5px;
+        }
+        .toolbar .brand small {
+            font-weight: 400;
+            font-size: 12px;
+            color: #5f6368;
+            margin-left: 4px;
+        }
+        .toolbar .sep {
+            width: 1px;
+            height: 28px;
+            background: #d0d7de;
+            flex-shrink: 0;
+        }
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .toolbar-group label {
+            font-size: 12px;
+            color: #5f6368;
+            margin-right: 2px;
+        }
+        .toolbar button,
+        .toolbar select,
+        .toolbar input[type="color"] {
+            background: #f8f9fa;
+            border: 1px solid #dadce0;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #202124;
+            font-family: inherit;
+        }
+        .toolbar button:hover,
+        .toolbar select:hover {
+            background: #f1f3f4;
+            border-color: #bdc1c6;
+        }
+        .toolbar button:active {
+            background: #e8eaed;
+        }
+        .toolbar button.active {
+            background: #e8f0fe;
+            border-color: #1a73e8;
+            color: #1a73e8;
+        }
+        .toolbar input[type="color"] {
+            padding: 2px;
+            width: 34px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .toolbar input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 2px;
+        }
+        .toolbar input[type="color"]::-webkit-color-swatch {
+            border-radius: 4px;
+            border: none;
+        }
+        .toolbar select {
+            min-width: 70px;
+            padding: 4px 6px;
+        }
+        .toolbar .icon-btn {
+            font-size: 16px;
+            padding: 4px 8px;
+            min-width: 32px;
+            justify-content: center;
+        }
+        .toolbar .btn-danger:hover {
+            background: #fce8e6;
+            border-color: #d93025;
+            color: #d93025;
+        }
+        .toolbar .btn-primary {
+            background: #1a73e8;
+            border-color: #1a73e8;
+            color: #fff;
+        }
+        .toolbar .btn-primary:hover {
+            background: #1557b0;
+            border-color: #1557b0;
+        }
+        .main-area {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .thumbnails {
+            width: 180px;
+            background: #f1f3f4;
+            padding: 12px 10px;
+            overflow-y: auto;
+            border-right: 1px solid #d0d7de;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .thumbnails .thumb-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 4px 6px 4px;
+            border-bottom: 1px solid #dadce0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #3c4043;
+        }
+        .thumbnails .thumb-header button {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #5f6368;
+            padding: 0 4px;
+            line-height: 1;
+        }
+        .thumbnails .thumb-header button:hover {
+            color: #1a73e8;
+        }
+        .thumb-item {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+            position: relative;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .thumb-item:hover {
+            border-color: #dadce0;
+        }
+        .thumb-item.active {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+        }
+        .thumb-item .thumb-label {
+            position: absolute;
+            top: 4px;
+            left: 8px;
+            font-size: 10px;
+            color: #5f6368;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 0 4px;
+            border-radius: 3px;
+        }
+        .thumb-item .thumb-delete {
+            position: absolute;
+            top: 4px;
+            right: 6px;
+            background: none;
+            border: none;
+            color: #dadce0;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            padding: 0 4px;
+            line-height: 1.2;
+            display: none;
+        }
+        .thumb-item:hover .thumb-delete {
+            display: block;
+        }
+        .thumb-item .thumb-delete:hover {
+            color: #d93025;
+            background: #fce8e6;
+        }
+        .thumb-preview {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #ffffff;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            transform: scale(1);
+            pointer-events: none;
+        }
+        .thumb-preview .preview-el {
+            position: absolute;
+            font-size: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background: rgba(200, 200, 200, 0.3);
+            border-radius: 2px;
+            padding: 1px 3px;
+            max-width: 90%;
+        }
+        .editor-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e8ecf1;
+            padding: 20px;
+            overflow: auto;
+            position: relative;
+        }
+        .slide-container {
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 1024px;
+            aspect-ratio: 16 / 9;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        .slide-container:hover {
+            box-shadow: 0 6px 32px rgba(0, 0, 0, 0.16);
+        }
+        .slide-el {
+            position: absolute;
+            cursor: grab;
+            border: 2px solid transparent;
+            border-radius: 4px;
+            transition: border-color 0.1s;
+            min-width: 20px;
+            min-height: 20px;
+            padding: 4px 8px;
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+        .slide-el:hover {
+            border-color: rgba(26, 115, 232, 0.3);
+        }
+        .slide-el.selected {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+            z-index: 5;
+        }
+        .slide-el.text-el {
+            cursor: text;
+        }
+        .slide-el.shape-el {
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+        }
+        .slide-el .el-content {
+            width: 100%;
+            height: 100%;
+            outline: none;
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+        .slide-el .el-content:focus {
+            outline: none;
+        }
+        .slide-el.selected::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            right: -6px;
+            width: 12px;
+            height: 12px;
+            background: #1a73e8;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: nwse-resize;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+        .slide-el.selected .el-delete-btn {
+            display: flex;
+        }
+        .el-delete-btn {
+            display: none;
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            width: 22px;
+            height: 22px;
+            background: #d93025;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            font-size: 12px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            z-index: 20;
+            transition: transform 0.1s;
+        }
+        .el-delete-btn:hover {
+            transform: scale(1.15);
+        }
+        .slide-el.dragging {
+            opacity: 0.7;
+            z-index: 100;
+            cursor: grabbing;
+        }
+        .empty-slide {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #9aa0a6;
+            font-size: 16px;
+        }
+        .empty-slide .big-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+        .empty-slide .hint {
+            font-size: 13px;
+            color: #bdc1c6;
+        }
+        .context-menu {
+            position: fixed;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+            padding: 6px 0;
+            min-width: 160px;
+            z-index: 999;
+            display: none;
+            border: 1px solid #e8eaed;
+        }
+        .context-menu .menu-item {
+            padding: 8px 20px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #202124;
+            transition: background 0.1s;
+        }
+        .context-menu .menu-item:hover {
+            background: #f1f3f4;
+        }
+        .context-menu .menu-item.danger {
+            color: #d93025;
+        }
+        .context-menu .menu-item.danger:hover {
+            background: #fce8e6;
+        }
+        .status-bar {
+            background: #ffffff;
+            padding: 4px 20px;
+            border-top: 1px solid #d0d7de;
+            font-size: 12px;
+            color: #5f6368;
+            display: flex;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .status-bar .hint {
+            color: #9aa0a6;
+        }
+        /* 模态框样式 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 720px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .modal-box h2 {
+            margin-bottom: 8px;
+            color: #202124;
+        }
+        .modal-box .sub {
+            color: #5f6368;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .modal-box textarea {
+            flex: 1;
+            min-height: 300px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            resize: vertical;
+            outline: none;
+        }
+        .modal-box textarea:focus {
+            border-color: #1a73e8;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .modal-actions button {
+            padding: 8px 20px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.15s;
+        }
+        .modal-actions .btn-cancel {
+            background: #f1f3f4;
+            color: #202124;
+        }
+        .modal-actions .btn-cancel:hover {
+            background: #e8eaed;
+        }
+        .modal-actions .btn-confirm {
+            background: #1a73e8;
+            color: #fff;
+        }
+        .modal-actions .btn-confirm:hover {
+            background: #1557b0;
+        }
+        @media (max-width: 820px) {
+            .thumbnails {
+                width: 120px;
+                padding: 8px 6px;
+            }
+            .thumb-item {
+                min-height: 50px;
+            }
+            .toolbar .brand {
+                font-size: 14px;
+                margin-right: 8px;
+            }
+            .toolbar .brand small {
+                display: none;
+            }
+            .toolbar button,
+            .toolbar select,
+            .toolbar input[type="color"] {
+                font-size: 12px;
+                padding: 2px 6px;
+                height: 26px;
+            }
+            .toolbar .sep {
+                height: 20px;
+            }
+            .editor-area {
+                padding: 10px;
+            }
+        }
+        @media (max-width: 600px) {
+            .thumbnails {
+                display: none;
+            }
+            .toolbar {
+                padding: 4px 8px;
+                gap: 4px;
+            }
+            .toolbar-group {
+                gap: 2px;
+            }
+            .toolbar .brand {
+                font-size: 13px;
+                margin-right: 4px;
+            }
+            .slide-container {
+                border-radius: 4px;
+            }
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c7cd;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8afb6;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 工具栏 -->
+    <div class="toolbar" id="toolbar">
+        <span class="brand">📊 PPT<span style="font-weight:400;font-size:12px;color:#5f6368;"> · 可视化编辑</span></span>
+        <div class="sep"></div>
+        <div class="toolbar-group">
+            <button id="addSlideBtn" title="添加幻灯片">➕ 添加</button>
+            <button id="dupSlideBtn" title="复制当前幻灯片">📋 复制</button>
+            <button id="delSlideBtn" class="btn-danger" title="删除当前幻灯片">🗑️ 删除</button>
+        </div>
+        <div class="sep"></div>
+        <div class="toolbar-group">
+            <button id="addTextBtn" title="添加文本框">📝 文本</button>
+            <button id="addRectBtn" title="添加矩形">▭ 矩形</button>
+            <button id="addCircleBtn" title="添加圆形">◯ 圆形</button>
+        </div>
+        <div class="sep"></div>
+        <div class="toolbar-group">
+            <select id="fontFamily" title="字体">
+                <option value="Arial">Arial</option>
+                <option value="'Segoe UI'">Segoe UI</option>
+                <option value="'PingFang SC'">PingFang SC</option>
+                <option value="'Microsoft YaHei'">微软雅黑</option>
+                <option value="Georgia">Georgia</option>
+                <option value="'Courier New'">Courier New</option>
+            </select>
+            <select id="fontSize" title="字号">
+                <option value="12">12</option><option value="14">14</option><option value="16">16</option>
+                <option value="18">18</option><option value="20">20</option><option value="24" selected>24</option>
+                <option value="28">28</option><option value="32">32</option><option value="36">36</option>
+                <option value="40">40</option><option value="48">48</option><option value="56">56</option><option value="64">64</option>
+            </select>
+        </div>
+        <div class="sep"></div>
+        <div class="toolbar-group">
+            <button id="boldBtn" class="icon-btn" title="加粗"><b>B</b></button>
+            <button id="italicBtn" class="icon-btn" title="斜体"><i>I</i></button>
+            <button id="underlineBtn" class="icon-btn" title="下划线"><u>U</u></button>
+            <button id="strikeBtn" class="icon-btn" title="删除线"><s>S</s></button>
+        </div>
+        <div class="sep"></div>
+        <div class="toolbar-group">
+            <button id="alignLeftBtn" class="icon-btn" title="左对齐">≡←</button>
+            <button id="alignCenterBtn" class="icon-btn" title="居中">≡↔</button>
+            <button id="alignRightBtn" class="icon-btn" title="右对齐">≡→</button>
+        </div>
+        <div class="sep"></div>
+        <div class="toolbar-group">
+            <label>颜色</label><input type="color" id="colorPicker" value="#202124" />
+            <label style="margin-left:4px;">背景</label><input type="color" id="bgColorPicker" value="#ffffff" />
+        </div>
+        <div class="sep"></div>
+        <div class="toolbar-group">
+            <button id="deleteElBtn" class="btn-danger icon-btn" title="删除选中元素">✕</button>
+        </div>
+        <div class="sep"></div>
+        <div class="toolbar-group">
+            <button id="importHtmlBtn" title="导入原始HTML文件内容">📂 导入HTML</button>
+            <button id="exportBtn" class="btn-primary" title="导出为独立的HTML汇报文件">📥 导出HTML</button>
+        </div>
+    </div>
+
+    <!-- 主体 -->
+    <div class="main-area">
+        <div class="thumbnails" id="thumbnails">
+            <div class="thumb-header">
+                <span>📄 幻灯片</span>
+                <button id="addSlideThumbBtn" title="添加幻灯片">＋</button>
+            </div>
+            <div id="thumbList"></div>
+        </div>
+        <div class="editor-area" id="editorArea">
+            <div class="slide-container" id="slideContainer"></div>
+        </div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div class="context-menu" id="contextMenu">
+        <div class="menu-item" data-action="edit">✏️ 编辑文本</div>
+        <div class="menu-item" data-action="duplicate">📋 复制元素</div>
+        <div class="menu-item" data-action="delete" class="danger">🗑️ 删除元素</div>
+        <div style="border-top:1px solid #e8eaed;margin:4px 0;"></div>
+        <div class="menu-item" data-action="bringForward">⬆ 上移一层</div>
+        <div class="menu-item" data-action="sendBackward">⬇ 下移一层</div>
+    </div>
+
+    <!-- 导入HTML的模态框 -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal-box">
+            <h2>📂 导入原始 HTML</h2>
+            <div class="sub">选择 HTML 文件，或粘贴源码内容。系统将提取正文的文本和样式，添加到当前幻灯片。</div>
+            <div style="margin-bottom: 12px;">
+                <input type="file" id="htmlFileInput" accept=".html,.htm" style="display:none;" />
+                <button id="selectFileBtn" class="btn-file" style="background:#f8f9fa;border:1px solid #dadce0;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:6px;color:#202124;">
+                    📁 选择 HTML 文件
+                </button>
+                <span id="fileNameDisplay" style="margin-left:12px;font-size:13px;color:#5f6368;"></span>
+            </div>
+            <textarea id="htmlInput" placeholder="<html><body><h1>标题</h1><p>段落内容...</p></body></html>"></textarea>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="modalCancel">取消</button>
+                <button class="btn-confirm" id="modalConfirm">解析并导入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="status-bar">
+        <span id="statusInfo">就绪</span>
+        <span class="hint">双击文本编辑 · 拖拽移动 · 导入HTML到当前幻灯片</span>
+    </div>
+
+    <script>
+        // ================================================================
+        //  DATA
+        // ================================================================
+        let data = {
+            slides: [],
+            currentSlideIndex: 0,
+            selectedElementId: null,
+            nextId: 1,
+        };
+
+        function genId() { return data.nextId++; }
+
+        function getCurrentSlide() {
+            return data.slides[data.currentSlideIndex] || null;
+        }
+
+        function getElementById(id) {
+            const slide = getCurrentSlide();
+            if (!slide) return null;
+            return slide.elements.find(el => el.id === id) || null;
+        }
+
+        function getSelectedElement() {
+            if (data.selectedElementId === null) return null;
+            return getElementById(data.selectedElementId);
+        }
+
+        function updateStatus(msg) {
+            document.getElementById('statusInfo').textContent = msg || '就绪';
+        }
+
+        // ================================================================
+        //  INIT
+        // ================================================================
+        function initDefaultData() {
+            data.slides = [{
+                id: genId(),
+                elements: [{
+                    id: genId(),
+                    type: 'text',
+                    x: 60,
+                    y: 80,
+                    width: 400,
+                    height: 70,
+                    content: '🎯 欢迎使用 PPT 编辑器',
+                    style: { fontSize: '36px', fontWeight: 'bold', fontStyle: 'normal', textDecoration: 'none',
+                        color: '#1a73e8', backgroundColor: 'transparent', fontFamily: 'Arial',
+                        textAlign: 'left' }
+                }, {
+                    id: genId(),
+                    type: 'text',
+                    x: 60,
+                    y: 170,
+                    width: 520,
+                    height: 60,
+                    content: '双击任意文本直接编辑 · 拖拽移动位置',
+                    style: { fontSize: '22px', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none',
+                        color: '#3c4043', backgroundColor: 'transparent', fontFamily: 'Arial',
+                        textAlign: 'left' }
+                }, {
+                    id: genId(),
+                    type: 'text',
+                    x: 60,
+                    y: 240,
+                    width: 500,
+                    height: 40,
+                    content: '选中元素后使用工具栏调整样式',
+                    style: { fontSize: '18px', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none',
+                        color: '#5f6368', backgroundColor: 'transparent', fontFamily: 'Arial',
+                        textAlign: 'left' }
+                }, {
+                    id: genId(),
+                    type: 'shape',
+                    shape: 'rect',
+                    x: 700,
+                    y: 80,
+                    width: 180,
+                    height: 120,
+                    content: '📦 矩形',
+                    style: { fontSize: '16px', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none',
+                        color: '#ffffff', backgroundColor: '#1a73e8', fontFamily: 'Arial', textAlign: 'center',
+                        borderRadius: '8px' }
+                }, {
+                    id: genId(),
+                    type: 'shape',
+                    shape: 'circle',
+                    x: 720,
+                    y: 240,
+                    width: 120,
+                    height: 120,
+                    content: '●',
+                    style: { fontSize: '48px', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none',
+                        color: '#e37400', backgroundColor: 'transparent', fontFamily: 'Arial',
+                        textAlign: 'center', borderRadius: '50%', border: '4px solid #e37400' }
+                }]
+            }];
+            data.currentSlideIndex = 0;
+            data.selectedElementId = null;
+        }
+        initDefaultData();
+
+        // ================================================================
+        //  RENDER
+        // ================================================================
+        function renderAll() {
+            renderThumbnails();
+            renderSlide();
+            updateToolbarState();
+            updateStatus(`幻灯片 ${data.currentSlideIndex + 1} / ${data.slides.length}  ·  元素数: ${getCurrentSlide()?.elements.length || 0}`);
+        }
+
+        function renderThumbnails() {
+            const container = document.getElementById('thumbList');
+            container.innerHTML = '';
+            data.slides.forEach((slide, idx) => {
+                const div = document.createElement('div');
+                div.className = 'thumb-item' + (idx === data.currentSlideIndex ? ' active' : '');
+                div.dataset.index = idx;
+                const label = document.createElement('span');
+                label.className = 'thumb-label';
+                label.textContent = `#${idx + 1}`;
+                div.appendChild(label);
+                const del = document.createElement('button');
+                del.className = 'thumb-delete';
+                del.textContent = '✕';
+                del.title = '删除此幻灯片';
+                del.addEventListener('mousedown', (e) => { e.stopPropagation(); });
+                del.addEventListener('click', (e) => { e.stopPropagation();
+                    deleteSlide(idx); });
+                div.appendChild(del);
+                const preview = document.createElement('div');
+                preview.className = 'thumb-preview';
+                const els = slide.elements.slice(0, 4);
+                els.forEach(el => {
+                    const p = document.createElement('div');
+                    p.className = 'preview-el';
+                    const scale = 0.15;
+                    p.style.left = (el.x * scale) + 'px';
+                    p.style.top = (el.y * scale) + 'px';
+                    p.style.width = (el.width * scale) + 'px';
+                    p.style.height = (el.height * scale) + 'px';
+                    p.style.fontSize = Math.min(10, parseInt(el.style.fontSize || 16) * scale) + 'px';
+                    p.style.color = el.style.color || '#000';
+                    p.style.backgroundColor = el.style.backgroundColor || 'transparent';
+                    p.style.textAlign = el.style.textAlign || 'left';
+                    p.textContent = el.content || '';
+                    if (el.type === 'shape' && el.shape === 'circle') {
+                        p.style.borderRadius = '50%';
+                        p.style.border = '1px solid ' + (el.style.color || '#000');
+                    }
+                    if (el.type === 'shape' && el.shape === 'rect') {
+                        p.style.borderRadius = '2px';
+                    }
+                    preview.appendChild(p);
+                });
+                div.appendChild(preview);
+                div.addEventListener('click', () => { selectSlide(idx); });
+                container.appendChild(div);
+            });
+        }
+
+        function renderSlide() {
+            const container = document.getElementById('slideContainer');
+            const slide = getCurrentSlide();
+            container.innerHTML = '';
+            if (!slide || slide.elements.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-slide';
+                empty.innerHTML =
+                    `<div class="big-icon">📄</div><div>点击「添加」插入元素</div><div class="hint">或从左侧选择其他幻灯片</div>`;
+                container.appendChild(empty);
+                return;
+            }
+            const sorted = [...slide.elements];
+            sorted.forEach(el => {
+                const div = document.createElement('div');
+                div.className = `slide-el ${el.type}-el`;
+                div.dataset.elId = el.id;
+                if (data.selectedElementId === el.id) div.classList.add('selected');
+                div.style.left = el.x + 'px';
+                div.style.top = el.y + 'px';
+                div.style.width = el.width + 'px';
+                div.style.height = el.height + 'px';
+                const s = el.style || {};
+                div.style.fontSize = s.fontSize || '16px';
+                div.style.fontWeight = s.fontWeight || 'normal';
+                div.style.fontStyle = s.fontStyle || 'normal';
+                div.style.textDecoration = s.textDecoration || 'none';
+                div.style.color = s.color || '#202124';
+                div.style.backgroundColor = s.backgroundColor || 'transparent';
+                div.style.fontFamily = s.fontFamily || 'Arial';
+                div.style.textAlign = s.textAlign || 'left';
+                if (s.borderRadius) div.style.borderRadius = s.borderRadius;
+                if (s.border) div.style.border = s.border;
+
+                if (el.type === 'shape') {
+                    if (el.shape === 'circle') {
+                        div.style.borderRadius = '50%';
+                        div.style.display = 'flex';
+                        div.style.alignItems = 'center';
+                        div.style.justifyContent = 'center';
+                        div.style.border = s.border || `2px solid ${s.color || '#000'}`;
+                    } else {
+                        div.style.borderRadius = s.borderRadius || '4px';
+                        div.style.display = 'flex';
+                        div.style.alignItems = 'center';
+                        div.style.justifyContent = 'center';
+                    }
+                    const contentSpan = document.createElement('span');
+                    contentSpan.className = 'el-content';
+                    contentSpan.textContent = el.content || '';
+                    contentSpan.style.pointerEvents = 'none';
+                    div.appendChild(contentSpan);
+                } else {
+                    const contentSpan = document.createElement('span');
+                    contentSpan.className = 'el-content';
+                    contentSpan.contentEditable = true;
+                    contentSpan.textContent = el.content || '';
+                    contentSpan.style.outline = 'none';
+                    contentSpan.style.display = 'block';
+                    contentSpan.style.width = '100%';
+                    contentSpan.style.height = '100%';
+                    contentSpan.style.overflow = 'hidden';
+                    contentSpan.style.wordWrap = 'break-word';
+                    contentSpan.addEventListener('mousedown', (e) => e.stopPropagation());
+                    contentSpan.addEventListener('click', (e) => e.stopPropagation());
+                    contentSpan.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        selectElement(el.id);
+                        setTimeout(() => {
+                            contentSpan.focus();
+                            const range = document.createRange();
+                            range.selectNodeContents(contentSpan);
+                            const sel = window.getSelection();
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }, 10);
+                    });
+                    contentSpan.addEventListener('input', () => {
+                        const elData = getElementById(el.id);
+                        if (elData) { elData.content = contentSpan.textContent;
+                            renderThumbnails(); }
+                    });
+                    contentSpan.addEventListener('blur', () => {
+                        const elData = getElementById(el.id);
+                        if (elData) { elData.content = contentSpan.textContent;
+                            renderThumbnails(); }
+                    });
+                    div.appendChild(contentSpan);
+                }
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'el-delete-btn';
+                delBtn.textContent = '✕';
+                delBtn.title = '删除元素';
+                delBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+                delBtn.addEventListener('click', (e) => { e.stopPropagation();
+                    deleteElement(el.id); });
+                div.appendChild(delBtn);
+
+                div.addEventListener('mousedown', (e) => {
+                    if (e.target.closest('.el-content') && e.target.closest('.el-content').contentEditable ===
+                        'true') return;
+                    if (e.target.closest('.el-delete-btn')) return;
+                    selectElement(el.id);
+                    e.stopPropagation();
+                });
+
+                let dragData = null;
+                div.addEventListener('mousedown', (e) => {
+                    if (e.target.closest('.el-content') && e.target.closest('.el-content').contentEditable ===
+                        'true') return;
+                    if (e.target.closest('.el-delete-btn')) return;
+                    if (e.button !== 0) return;
+                    const rect = div.getBoundingClientRect();
+                    dragData = {
+                        elId: el.id,
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        origX: el.x,
+                        origY: el.y,
+                    };
+                    div.classList.add('dragging');
+                    e.preventDefault();
+                });
+                const onDragMove = (e) => {
+                    if (!dragData) return;
+                    const container = document.getElementById('slideContainer');
+                    const cRect = container.getBoundingClientRect();
+                    const scaleX = cRect.width / container.offsetWidth;
+                    const scaleY = cRect.height / container.offsetHeight;
+                    const dx = (e.clientX - dragData.startX) / scaleX;
+                    const dy = (e.clientY - dragData.startY) / scaleY;
+                    const newX = Math.max(0, dragData.origX + dx);
+                    const newY = Math.max(0, dragData.origY + dy);
+                    const elData = getElementById(dragData.elId);
+                    if (elData) { elData.x = newX;
+                        elData.y = newY;
+                        renderSlide();
+                        selectElement(elData.id); }
+                };
+                const onDragEnd = () => {
+                    if (dragData) {
+                        const elData = getElementById(dragData.elId);
+                        if (elData) { renderSlide();
+                            selectElement(elData.id);
+                            renderThumbnails(); }
+                        dragData = null;
+                        document.querySelectorAll('.slide-el.dragging').forEach(el => el.classList.remove('dragging'));
+                    }
+                    document.removeEventListener('mousemove', onDragMove);
+                    document.removeEventListener('mouseup', onDragEnd);
+                };
+                div.addEventListener('mousedown', () => {
+                    document.addEventListener('mousemove', onDragMove);
+                    document.addEventListener('mouseup', onDragEnd);
+                });
+
+                const resizeHandle = document.createElement('div');
+                resizeHandle.style.cssText = `
+                        position: absolute; bottom: -7px; right: -7px;
+                        width: 14px; height: 14px;
+                        background: #1a73e8;
+                        border: 2px solid #fff;
+                        border-radius: 50%;
+                        cursor: nwse-resize;
+                        box-shadow: 0 0 4px rgba(0,0,0,0.2);
+                        z-index: 15;
+                        display: ${data.selectedElementId === el.id ? 'block' : 'none'};
+                    `;
+                div.appendChild(resizeHandle);
+                let resizeData = null;
+                resizeHandle.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (e.button !== 0) return;
+                    resizeData = {
+                        elId: el.id,
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        origW: el.width,
+                        origH: el.height,
+                    };
+                });
+                const onResizeMove = (e) => {
+                    if (!resizeData) return;
+                    const container = document.getElementById('slideContainer');
+                    const cRect = container.getBoundingClientRect();
+                    const scaleX = cRect.width / container.offsetWidth;
+                    const scaleY = cRect.height / container.offsetHeight;
+                    const dw = (e.clientX - resizeData.startX) / scaleX;
+                    const dh = (e.clientY - resizeData.startY) / scaleY;
+                    const elData = getElementById(resizeData.elId);
+                    if (elData) {
+                        elData.width = Math.max(30, resizeData.origW + dw);
+                        elData.height = Math.max(20, resizeData.origH + dh);
+                        renderSlide();
+                        selectElement(elData.id);
+                    }
+                };
+                const onResizeEnd = () => {
+                    if (resizeData) {
+                        const elData = getElementById(resizeData.elId);
+                        if (elData) { renderSlide();
+                            selectElement(elData.id);
+                            renderThumbnails(); }
+                        resizeData = null;
+                    }
+                    document.removeEventListener('mousemove', onResizeMove);
+                    document.removeEventListener('mouseup', onResizeEnd);
+                };
+                resizeHandle.addEventListener('mousedown', () => {
+                    document.addEventListener('mousemove', onResizeMove);
+                    document.addEventListener('mouseup', onResizeEnd);
+                });
+                container.appendChild(div);
+            });
+        }
+
+        // ================================================================
+        //  ACTIONS
+        // ================================================================
+        function selectSlide(index) {
+            if (index < 0 || index >= data.slides.length) return;
+            data.currentSlideIndex = index;
+            data.selectedElementId = null;
+            renderAll();
+        }
+
+        function selectElement(id) {
+            data.selectedElementId = id;
+            renderSlide();
+            updateToolbarState();
+            const el = getElementById(id);
+            updateStatus(el ? `已选中: "${el.content || '元素'}"` : `已取消选中`);
+        }
+
+        function addSlide() {
+            data.slides.push({ id: genId(), elements: [] });
+            data.currentSlideIndex = data.slides.length - 1;
+            data.selectedElementId = null;
+            renderAll();
+            updateStatus(`已添加幻灯片 #${data.slides.length}`);
+        }
+
+        function duplicateSlide() {
+            const slide = getCurrentSlide();
+            if (!slide) return;
+            const newSlide = { id: genId(), elements: slide.elements.map(el => ({ ...el, id: genId(), x: el.x + 20,
+                    y: el.y + 20 })) };
+            data.slides.splice(data.currentSlideIndex + 1, 0, newSlide);
+            data.currentSlideIndex = data.currentSlideIndex + 1;
+            data.selectedElementId = null;
+            renderAll();
+            updateStatus(`已复制幻灯片 #${data.currentSlideIndex + 1}`);
+        }
+
+        function deleteSlide(index) {
+            if (data.slides.length <= 1) { updateStatus('至少保留一张幻灯片'); return; }
+            data.slides.splice(index, 1);
+            if (data.currentSlideIndex >= data.slides.length) data.currentSlideIndex = data.slides.length - 1;
+            data.selectedElementId = null;
+            renderAll();
+            updateStatus(`已删除幻灯片`);
+        }
+
+        function addElement(type, shape = null) {
+            const slide = getCurrentSlide();
+            if (!slide) return;
+            const w = type === 'text' ? 300 : 140,
+                h = type === 'text' ? 50 : 100;
+            const x = 50 + Math.random() * 200,
+                y = 50 + Math.random() * 150;
+            const newEl = {
+                id: genId(),
+                type: type,
+                x: x,
+                y: y,
+                width: w,
+                height: h,
+                content: type === 'text' ? '双击编辑文本' : (shape === 'circle' ? '●' : '📦 形状'),
+                style: { fontSize: type === 'text' ? '24px' : '18px', fontWeight: 'normal', fontStyle: 'normal',
+                    textDecoration: 'none', color: type === 'text' ? '#202124' : '#ffffff',
+                    backgroundColor: type === 'text' ? 'transparent' : (shape === 'circle' ? 'transparent' :
+                        '#1a73e8'), fontFamily: 'Arial', textAlign: 'center', }
+            };
+            if (shape === 'circle') { newEl.shape = 'circle';
+                newEl.style.border = '3px solid #e37400';
+                newEl.style.color = '#e37400';
+                newEl.style.backgroundColor = 'transparent'; } else if (shape === 'rect') { newEl.shape = 'rect';
+                newEl.style.borderRadius = '6px';
+                newEl.style.backgroundColor = '#1a73e8';
+                newEl.style.color = '#ffffff'; }
+            slide.elements.push(newEl);
+            data.selectedElementId = newEl.id;
+            renderAll();
+            updateStatus(`已添加${type === 'text' ? '文本' : '形状'}`);
+        }
+
+        function deleteElement(id) {
+            const slide = getCurrentSlide();
+            if (!slide) return;
+            const idx = slide.elements.findIndex(el => el.id === id);
+            if (idx === -1) return;
+            slide.elements.splice(idx, 1);
+            if (data.selectedElementId === id) data.selectedElementId = null;
+            renderAll();
+            updateStatus('已删除元素');
+        }
+
+        function duplicateElement(id) {
+            const slide = getCurrentSlide();
+            if (!slide) return;
+            const el = getElementById(id);
+            if (!el) return;
+            const newEl = { ...el, id: genId(), x: el.x + 30, y: el.y + 30 };
+            slide.elements.push(newEl);
+            data.selectedElementId = newEl.id;
+            renderAll();
+            updateStatus('已复制元素');
+        }
+
+        function bringForward(id) {
+            const slide = getCurrentSlide();
+            if (!slide) return;
+            const idx = slide.elements.findIndex(el => el.id === id);
+            if (idx === -1 || idx === slide.elements.length - 1) return;
+            [slide.elements[idx], slide.elements[idx + 1]] = [slide.elements[idx + 1], slide.elements[idx]];
+            renderAll();
+            selectElement(id);
+        }
+
+        function sendBackward(id) {
+            const slide = getCurrentSlide();
+            if (!slide) return;
+            const idx = slide.elements.findIndex(el => el.id === id);
+            if (idx <= 0) return;
+            [slide.elements[idx], slide.elements[idx - 1]] = [slide.elements[idx - 1], slide.elements[idx]];
+            renderAll();
+            selectElement(id);
+        }
+
+        // ================================================================
+        //  IMPORT RAW HTML
+        // ================================================================
+        function importRawHTML(htmlString) {
+            const slide = getCurrentSlide();
+            if (!slide) return;
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlString, 'text/html');
+                const body = doc.body;
+                let yOffset = 30,
+                    xOffset = 30;
+                let count = 0;
+                for (let child of body.children) {
+                    const tag = child.tagName.toLowerCase();
+                    if (['script', 'style', 'noscript'].includes(tag)) continue;
+                    const text = child.textContent.trim();
+                    if (!text) continue;
+                    const style = child.style;
+                    const fontSize = style.fontSize || '16px';
+                    const color = style.color || '#202124';
+                    const bgColor = style.backgroundColor || 'transparent';
+                    const textAlign = style.textAlign || 'left';
+                    const fontWeight = style.fontWeight || 'normal';
+                    const fontStyle = style.fontStyle || 'normal';
+                    const width = Math.min(600, Math.max(120, 100 + text.length * 7));
+                    const height = Math.max(28, parseInt(fontSize) * 1.6);
+                    const newEl = {
+                        id: genId(),
+                        type: 'text',
+                        x: xOffset,
+                        y: yOffset,
+                        width: width,
+                        height: height,
+                        content: text,
+                        style: { fontSize: fontSize, fontWeight: fontWeight, fontStyle: fontStyle,
+                            textDecoration: 'none', color: color, backgroundColor: bgColor,
+                            fontFamily: 'Arial', textAlign: textAlign }
+                    };
+                    slide.elements.push(newEl);
+                    count++;
+                    yOffset += height + 12;
+                    if (yOffset > 500) { yOffset = 30;
+                        xOffset += 350; }
+                }
+                renderAll();
+                updateStatus(`✅ 导入成功，共添加 ${count} 个文本元素`);
+            } catch (e) {
+                updateStatus('❌ 导入失败：' + e.message);
+                console.error(e);
+            }
+        }
+
+        // ================================================================
+        //  EXPORT HTML
+        // ================================================================
+        function exportHTML() {
+            const exportData = {
+                slides: data.slides,
+                currentSlideIndex: data.currentSlideIndex,
+                nextId: data.nextId
+            };
+            const jsonStr = JSON.stringify(exportData);
+            // 获取当前页面的样式（完整复制）
+            const styles = document.querySelector('style').innerHTML;
+            const htmlContent = `<!DOCTYPE html>
+        <html lang="zh-CN">
+        <head><meta charset="UTF-8"><title>汇报文件 - PPT</title>
+        <style>${styles}</style>
+        </head>
+        <body>
+            <div class="toolbar" style="background:#f8f9fa;padding:8px 16px;border-bottom:1px solid #dadce0;display:flex;gap:12px;align-items:center;">
+                <span style="font-weight:bold;font-size:18px;color:#1a73e8;">📊 汇报演示</span>
+                <span style="font-size:13px;color:#5f6368;">共 ${data.slides.length} 页 · 点击缩略图切换</span>
+            </div>
+            <div class="main-area" style="display:flex;height:calc(100vh - 50px);">
+                <div class="thumbnails" style="width:180px;background:#f1f3f4;padding:12px 10px;overflow-y:auto;border-right:1px solid #d0d7de;">
+                    <div class="thumb-header" style="display:flex;justify-content:space-between;padding:0 4px 6px;border-bottom:1px solid #dadce0;font-weight:600;">📄 幻灯片</div>
+                    <div id="thumbListExport"></div>
+                </div>
+                <div class="editor-area" style="flex:1;display:flex;align-items:center;justify-content:center;background:#e8ecf1;padding:20px;overflow:auto;">
+                    <div class="slide-container" id="slideContainerExport" style="background:#fff;box-shadow:0 4px 24px rgba(0,0,0,0.12);border-radius:8px;width:100%;max-width:1024px;aspect-ratio:16/9;position:relative;overflow:hidden;"></div>
+                </div>
+            </div>
+            <script>
+                const savedData = ${jsonStr};
+                let data = savedData;
+                let currentSlideIndex = data.currentSlideIndex || 0;
+                let selectedElementId = null;
+                function genId(){ return data.nextId++; }
+                function getCurrentSlide(){ return data.slides[currentSlideIndex] || null; }
+                function renderSlide(){
+                    const container = document.getElementById('slideContainerExport');
+                    const slide = getCurrentSlide();
+                    container.innerHTML = '';
+                    if(!slide || slide.elements.length === 0){
+                        container.innerHTML = '<div class="empty-slide" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#9aa0a6;"><div style="font-size:48px;">📄</div><div>空幻灯片</div></div>';
+                        return;
+                    }
+                    slide.elements.forEach(el => {
+                        const div = document.createElement('div');
+                        div.className = 'slide-el';
+                        div.style.left = el.x + 'px';
+                        div.style.top = el.y + 'px';
+                        div.style.width = el.width + 'px';
+                        div.style.height = el.height + 'px';
+                        const s = el.style || {};
+                        div.style.fontSize = s.fontSize || '16px';
+                        div.style.fontWeight = s.fontWeight || 'normal';
+                        div.style.fontStyle = s.fontStyle || 'normal';
+                        div.style.textDecoration = s.textDecoration || 'none';
+                        div.style.color = s.color || '#202124';
+                        div.style.backgroundColor = s.backgroundColor || 'transparent';
+                        div.style.fontFamily = s.fontFamily || 'Arial';
+                        div.style.textAlign = s.textAlign || 'left';
+                        if(s.borderRadius) div.style.borderRadius = s.borderRadius;
+                        if(s.border) div.style.border = s.border;
+                        if(el.type === 'shape' && el.shape === 'circle'){
+                            div.style.borderRadius = '50%';
+                            div.style.display = 'flex';
+                            div.style.alignItems = 'center';
+                            div.style.justifyContent = 'center';
+                            div.style.border = s.border || '2px solid ' + (s.color || '#000');
+                        } else if(el.type === 'shape'){
+                            div.style.borderRadius = s.borderRadius || '4px';
+                            div.style.display = 'flex';
+                            div.style.alignItems = 'center';
+                            div.style.justifyContent = 'center';
+                        }
+                        div.textContent = el.content || '';
+                        container.appendChild(div);
+                    });
+                }
+                function renderThumbnails(){
+                    const container = document.getElementById('thumbListExport');
+                    container.innerHTML = '';
+                    data.slides.forEach((slide, idx) => {
+                        const div = document.createElement('div');
+                        div.style.cssText = 'background:#fff;border-radius:8px;padding:6px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.08);cursor:pointer;border:2px solid ' + (idx === currentSlideIndex ? '#1a73e8' : 'transparent') + ';';
+                        div.textContent = '#' + (idx+1) + '  (' + slide.elements.length + '个元素)';
+                        div.addEventListener('click', ()=>{ currentSlideIndex = idx; renderThumbnails(); renderSlide(); });
+                        container.appendChild(div);
+                    });
+                }
+                renderThumbnails();
+                renderSlide();
+            <\/script>
+        </body>
+        </html>`;
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'presentation.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            updateStatus('✅ 导出成功！下载 presentation.html');
+        }
+
+        // ================================================================
+        //  TOOLBAR STATE
+        // ================================================================
+        function updateToolbarState() {
+            const el = getSelectedElement();
+            if (!el) {
+                ['bold', 'italic', 'underline', 'strike'].forEach(id => document.getElementById(id + 'Btn').classList
+                    .remove('active'));
+                return;
+            }
+            const s = el.style || {};
+            document.getElementById('boldBtn').classList.toggle('active', s.fontWeight === 'bold');
+            document.getElementById('italicBtn').classList.toggle('active', s.fontStyle === 'italic');
+            document.getElementById('underlineBtn').classList.toggle('active', s.textDecoration === 'underline');
+            document.getElementById('strikeBtn').classList.toggle('active', s.textDecoration === 'line-through');
+            if (s.fontFamily) document.getElementById('fontFamily').value = s.fontFamily;
+            if (s.fontSize) document.getElementById('fontSize').value = s.fontSize.replace('px', '');
+            document.getElementById('colorPicker').value = s.color || '#202124';
+            document.getElementById('bgColorPicker').value = s.backgroundColor || '#ffffff';
+        }
+
+        function applyStyleToSelected(prop, value) {
+            const el = getSelectedElement();
+            if (!el) { updateStatus('请先选中一个元素'); return; }
+            el.style[prop] = value;
+            renderSlide();
+            selectElement(el.id);
+            renderThumbnails();
+            updateStatus(`已更新样式: ${prop} = ${value}`);
+        }
+
+        function toggleStyle(prop, val1, val2) {
+            const el = getSelectedElement();
+            if (!el) { updateStatus('请先选中一个元素'); return; }
+            el.style[prop] = (el.style[prop] || '') === val1 ? val2 : val1;
+            renderSlide();
+            selectElement(el.id);
+            renderThumbnails();
+            updateStatus(`已切换样式`);
+        }
+
+        // ================================================================
+        //  BIND EVENTS
+        // ================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('addSlideBtn').addEventListener('click', addSlide);
+            document.getElementById('addSlideThumbBtn').addEventListener('click', addSlide);
+            document.getElementById('dupSlideBtn').addEventListener('click', duplicateSlide);
+            document.getElementById('delSlideBtn').addEventListener('click', () => deleteSlide(data.currentSlideIndex));
+            document.getElementById('addTextBtn').addEventListener('click', () => addElement('text'));
+            document.getElementById('addRectBtn').addEventListener('click', () => addElement('shape', 'rect'));
+            document.getElementById('addCircleBtn').addEventListener('click', () => addElement('shape', 'circle'));
+            document.getElementById('deleteElBtn').addEventListener('click', () => {
+                if (data.selectedElementId !== null) deleteElement(data.selectedElementId);
+                else updateStatus('请先选中一个元素');
+            });
+            document.getElementById('boldBtn').addEventListener('click', () => toggleStyle('fontWeight', 'bold',
+            'normal'));
+            document.getElementById('italicBtn').addEventListener('click', () => toggleStyle('fontStyle', 'italic',
+                'normal'));
+            document.getElementById('underlineBtn').addEventListener('click', () => toggleStyle('textDecoration',
+                'underline', 'none'));
+            document.getElementById('strikeBtn').addEventListener('click', () => toggleStyle('textDecoration',
+                'line-through', 'none'));
+            document.getElementById('alignLeftBtn').addEventListener('click', () => applyStyleToSelected('textAlign',
+                'left'));
+            document.getElementById('alignCenterBtn').addEventListener('click', () => applyStyleToSelected('textAlign',
+                'center'));
+            document.getElementById('alignRightBtn').addEventListener('click', () => applyStyleToSelected('textAlign',
+                'right'));
+            document.getElementById('fontFamily').addEventListener('change', (e) => applyStyleToSelected('fontFamily',
+                e.target.value));
+            document.getElementById('fontSize').addEventListener('change', (e) => applyStyleToSelected('fontSize', e
+                .target.value + 'px'));
+            document.getElementById('colorPicker').addEventListener('input', (e) => applyStyleToSelected('color', e
+                .target.value));
+            document.getElementById('bgColorPicker').addEventListener('input', (e) => applyStyleToSelected(
+                'backgroundColor', e.target.value));
+            document.getElementById('exportBtn').addEventListener('click', exportHTML);
+
+            // 导入 HTML 模态框
+            const modal = document.getElementById('importModal');
+            const importBtn = document.getElementById('importHtmlBtn');
+            const cancelBtn = document.getElementById('modalCancel');
+            const confirmBtn = document.getElementById('modalConfirm');
+            const textarea = document.getElementById('htmlInput');
+
+            importBtn.addEventListener('click', () => {
+                modal.classList.add('active');
+                textarea.value = '';
+                fileNameDisplay.textContent = '';
+                textarea.focus();
+            });
+
+            // 文件选择
+            const fileInput = document.getElementById('htmlFileInput');
+            const selectFileBtn = document.getElementById('selectFileBtn');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            selectFileBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    textarea.value = ev.target.result;
+                    fileNameDisplay.textContent = '已选: ' + file.name;
+                };
+                reader.onerror = () => { updateStatus('❌ 文件读取失败'); };
+                reader.readAsText(file);
+            });
+
+            cancelBtn.addEventListener('click', () => modal.classList.remove('active'));
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+            confirmBtn.addEventListener('click', () => {
+                const html = textarea.value.trim();
+                if (!html) { updateStatus('请粘贴 HTML 代码'); return; }
+                importRawHTML(html);
+                modal.classList.remove('active');
+            });
+
+            // 键盘快捷键
+            document.addEventListener('keydown', (e) => {
+                if ((e.key === 'Delete' || e.key === 'Backspace') && data.selectedElementId !== null) {
+                    const el = getSelectedElement();
+                    if (el && !e.target.closest('.el-content')) { e.preventDefault();
+                        deleteElement(data.selectedElementId); }
+                }
+                if (e.ctrlKey && e.key === 'd' && data.selectedElementId !== null) { e.preventDefault();
+                    duplicateElement(data.selectedElementId); }
+                if (e.key === 'Escape') { data.selectedElementId = null;
+                    renderAll();
+                    updateStatus('已取消选中'); }
+                if (e.key === 'Enter' && modal.classList.contains('active')) {
+                    confirmBtn.click();
+                }
+            });
+
+            document.getElementById('slideContainer').addEventListener('mousedown', (e) => {
+                if (e.target === e.currentTarget || e.target.classList.contains('empty-slide')) {
+                    data.selectedElementId = null;
+                    renderAll();
+                    updateStatus('已取消选中');
+                }
+            });
+
+            // 右键菜单
+            const contextMenu = document.getElementById('contextMenu');
+            document.addEventListener('contextmenu', (e) => {
+                const el = e.target.closest('.slide-el');
+                if (el) {
+                    e.preventDefault();
+                    const id = parseInt(el.dataset.elId);
+                    selectElement(id);
+                    contextMenu.style.display = 'block';
+                    contextMenu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
+                    contextMenu.style.top = Math.min(e.clientY, window.innerHeight - 160) + 'px';
+                } else {
+                    contextMenu.style.display = 'none';
+                }
+            });
+            document.addEventListener('click', () => { contextMenu.style.display = 'none'; });
+            document.querySelectorAll('.context-menu .menu-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const action = item.dataset.action;
+                    const id = data.selectedElementId;
+                    if (!id) return;
+                    if (action === 'edit') {
+                        const el = document.querySelector(`.slide-el[data-el-id="${id}"] .el-content`);
+                        if (el && el.contentEditable === 'true') {
+                            el.focus();
+                            const range = document.createRange();
+                            range.selectNodeContents(el);
+                            const sel = window.getSelection();
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    } else if (action === 'duplicate') duplicateElement(id);
+                    else if (action === 'delete') deleteElement(id);
+                    else if (action === 'bringForward') bringForward(id);
+                    else if (action === 'sendBackward') sendBackward(id);
+                    contextMenu.style.display = 'none';
+                });
+            });
+            renderAll();
+            updateStatus('就绪 · 支持导入原始HTML');
+        });
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => renderSlide(), 150);
+        });
+        console.log('📊 PPT Editor loaded. 支持导入/导出HTML');
+    </script>
+</body>
+</html>
