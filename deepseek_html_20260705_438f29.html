@@ -489,6 +489,55 @@
         .modal-actions .btn-confirm:hover {
             background: #1557b0;
         }
+        /* 导入进度条 */
+        .import-progress-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .import-progress-overlay.active { display: flex; }
+        .import-progress-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 36px 48px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            min-width: 340px;
+        }
+        .import-progress-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .import-progress-title {
+            font-size: 16px;
+            color: #202124;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .import-progress-bar-wrap {
+            width: 100%;
+            height: 8px;
+            background: #e8eaed;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .import-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.15s ease;
+        }
+        .import-progress-count {
+            font-size: 13px;
+            color: #5f6368;
+        }
         @media (max-width: 820px) {
             .thumbnails {
                 width: 120px;
@@ -657,6 +706,18 @@
                 <button class="btn-cancel" id="modalCancel">取消</button>
                 <button class="btn-confirm" id="modalConfirm">解析并导入</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 导入进度条 -->
+    <div class="import-progress-overlay" id="importProgressOverlay">
+        <div class="import-progress-box">
+            <div class="import-progress-icon">📋</div>
+            <div class="import-progress-title" id="progressTitle">正在解析 HTML...</div>
+            <div class="import-progress-bar-wrap">
+                <div class="import-progress-bar" id="importProgressBar"></div>
+            </div>
+            <div class="import-progress-count" id="progressCount">0 / 0 个元素</div>
         </div>
     </div>
 
@@ -1176,7 +1237,16 @@
             const slide = getCurrentSlide();
             if (!slide) return;
             try {
-                updateStatus('正在解析 HTML...');
+                // 显示进度条
+                const overlay = document.getElementById('importProgressOverlay');
+                const progressBar = document.getElementById('importProgressBar');
+                const progressTitle = document.getElementById('progressTitle');
+                const progressCount = document.getElementById('progressCount');
+                overlay.classList.add('active');
+                progressBar.style.width = '0%';
+                progressTitle.textContent = '正在解析 HTML...';
+                progressCount.textContent = '0 / ? 个元素';
+
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlString, 'text/html');
                 const body = doc.body;
@@ -1184,12 +1254,24 @@
                     xOffset = 30;
                 let count = 0;
                 const newElements = [];
+
+                // 第一遍：收集所有有效子元素
                 for (let child of body.children) {
                     const tag = child.tagName.toLowerCase();
                     if (['script', 'style', 'noscript', 'iframe'].includes(tag)) continue;
                     const text = child.textContent.trim();
                     if (!text || text.length < 2) continue;
-                    // 跳过导航、结构类元素
+                    if (['nav', 'header', 'footer', 'aside'].includes(tag)) continue;
+                    count++;
+                }
+
+                // 第二遍：构建元素
+                let processed = 0;
+                for (let child of body.children) {
+                    const tag = child.tagName.toLowerCase();
+                    if (['script', 'style', 'noscript', 'iframe'].includes(tag)) continue;
+                    const text = child.textContent.trim();
+                    if (!text || text.length < 2) continue;
                     if (['nav', 'header', 'footer', 'aside'].includes(tag)) continue;
                     const style = child.style;
                     const fontSize = style.fontSize || '16px';
@@ -1212,15 +1294,30 @@
                             textDecoration: 'none', color: color, backgroundColor: bgColor,
                             fontFamily: 'Arial', textAlign: textAlign }
                     });
-                    count++;
+                    processed++;
                     yOffset += height + 12;
                     if (yOffset > 500) { yOffset = 30; xOffset += 350; }
+
+                    // 每处理5个更新一次进度条
+                    if (processed % 5 === 0 || processed === count) {
+                        const pct = Math.round((processed / count) * 100);
+                        progressBar.style.width = pct + '%';
+                        progressCount.textContent = `${processed} / ${count} 个元素`;
+                    }
                 }
-                // 批量添加后再统一渲染，避免每添加一个就重绘一次
+
+                // 批量添加
+                progressTitle.textContent = '正在渲染幻灯片...';
                 slide.elements.push(...newElements);
                 renderAll();
-                updateStatus(`✅ 导入成功，共添加 ${count} 个文本元素`);
+
+                // 完成
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                    updateStatus(`✅ 导入成功，共添加 ${count} 个文本元素`);
+                }, 300);
             } catch (e) {
+                document.getElementById('importProgressOverlay').classList.remove('active');
                 updateStatus('❌ 导入失败：' + e.message);
                 console.error(e);
             }
